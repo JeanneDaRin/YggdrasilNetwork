@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Jotunn.Managers;
 
-namespace RuneVault.I18n
+namespace YggdrasilNetwork.I18n
 {
     /// <summary>Textos del mod en inglés y español. Otros idiomas caen al inglés.</summary>
     internal static class Texts
@@ -32,7 +32,7 @@ namespace RuneVault.I18n
             { "rv_core_hint", "Use an Access Terminal to browse and take them" },
             { "rv_open", "Open" },
             { "rv_no_core", "No Storage Core in range" },
-            { "rv_title", "Rune Vault — Access Terminal" },
+            { "rv_title", "Yggdrasil Network — Access Terminal" },
             { "rv_search", "Search:" },
             { "rv_chests", "{0} chests" },
             { "rv_close", "Close" },
@@ -106,7 +106,7 @@ namespace RuneVault.I18n
             { "rv_core_hint", "Usa una Terminal de acceso para verlos y sacarlos" },
             { "rv_open", "Abrir" },
             { "rv_no_core", "Sin núcleo de almacenamiento en rango" },
-            { "rv_title", "Rune Vault — Terminal de acceso" },
+            { "rv_title", "Yggdrasil Network — Terminal de acceso" },
             { "rv_search", "Buscar:" },
             { "rv_chests", "{0} cofres" },
             { "rv_close", "Cerrar" },

@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
 using Jotunn.Managers;
-using RuneVault.Network;
-using RuneVault.Pieces;
+using YggdrasilNetwork.Network;
+using YggdrasilNetwork.Pieces;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using static RuneVault.I18n.Texts;
+using static YggdrasilNetwork.I18n.Texts;
 
-namespace RuneVault.UI
+namespace YggdrasilNetwork.UI
 {
     /// <summary>
     /// Panel de la terminal de acceso, hecho con la interfaz de Valheim (uGUI).
@@ -150,7 +150,7 @@ namespace RuneVault.UI
                 try { w.Build(); }
                 catch (System.Exception e)
                 {
-                    RuneVaultPlugin.Log.LogError("No se pudo construir el panel de la terminal: " + e);
+                    YggdrasilPlugin.Log.LogError("No se pudo construir el panel de la terminal: " + e);
                     if (w._panel) Destroy(w._panel);
                     w._panel = null;
                     w._open = false;

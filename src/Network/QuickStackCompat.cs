@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using RuneVault.Pieces;
-using RuneVault.UI;
+using YggdrasilNetwork.Pieces;
+using YggdrasilNetwork.UI;
 using UnityEngine;
 
-namespace RuneVault.Network
+namespace YggdrasilNetwork.Network
 {
     /// <summary>
     /// Integración con "Quick Stack - Store - Sort - Trash - Restock": cuando su quick stack termina y estás
@@ -24,11 +24,11 @@ namespace RuneVault.Network
             var method = type != null ? AccessTools.Method(type, "QuickStackIntoMultipleContainers") : null;
             if (method == null)
             {
-                RuneVaultPlugin.Log.LogInfo("Quick Stack no encontrado: sin integración de quick stack.");
+                YggdrasilPlugin.Log.LogInfo("Quick Stack no encontrado: sin integración de quick stack.");
                 return;
             }
             harmony.Patch(method, postfix: new HarmonyMethod(typeof(QuickStackCompat), nameof(Postfix)));
-            RuneVaultPlugin.Log.LogInfo("Integración con Quick Stack activa.");
+            YggdrasilPlugin.Log.LogInfo("Integración con Quick Stack activa.");
         }
 
         // QuickStackIntoMultipleContainers(List<ItemData> items, List<ItemData> ..., Player player, List<Container> containers)
@@ -60,11 +60,11 @@ namespace RuneVault.Network
                     if (!names.Contains(item.m_shared.m_name)) continue;
                     sent += network.RequestStore(__2, item, item.m_stack);
                 }
-                if (sent > 0) RuneVaultPlugin.Log.LogInfo($"Quick stack a la red: {sent} ítems enviados.");
+                if (sent > 0) YggdrasilPlugin.Log.LogInfo($"Quick stack a la red: {sent} ítems enviados.");
             }
             catch (System.Exception e)
             {
-                RuneVaultPlugin.Log.LogWarning("Integración de quick stack falló: " + e.Message);
+                YggdrasilPlugin.Log.LogWarning("Integración de quick stack falló: " + e.Message);
             }
         }
     }

@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using RuneVault.Network;
+using YggdrasilNetwork.Network;
 using UnityEngine;
-using static RuneVault.I18n.Texts;
+using static YggdrasilNetwork.I18n.Texts;
 
-namespace RuneVault.Pieces
+namespace YggdrasilNetwork.Pieces
 {
     /// <summary>
     /// Núcleo de almacenamiento: enlaza los cofres dentro de su radio.
@@ -72,9 +72,9 @@ namespace RuneVault.Pieces
         /// <summary>Radio por nivel. Una mejora nunca achica el radio, aunque la configuración lo diga.</summary>
         internal static float RadiusFor(int level)
         {
-            float r = RuneVaultPlugin.CoreRadius.Value;
-            if (level >= 1) r = Mathf.Max(r, RuneVaultPlugin.RadiusLevel1.Value);
-            if (level >= 2) r = Mathf.Max(r, RuneVaultPlugin.RadiusLevel2.Value);
+            float r = YggdrasilPlugin.CoreRadius.Value;
+            if (level >= 1) r = Mathf.Max(r, YggdrasilPlugin.RadiusLevel1.Value);
+            if (level >= 2) r = Mathf.Max(r, YggdrasilPlugin.RadiusLevel2.Value);
             return r;
         }
 
@@ -91,7 +91,7 @@ namespace RuneVault.Pieces
                 {
                     var pos = pillar.transform.position;
                     if (!spheres.Any(sp => sp.Contains(pos))) continue;
-                    spheres.Add(new NetworkSphere(pos, RuneVaultPlugin.PillarRadius.Value));
+                    spheres.Add(new NetworkSphere(pos, YggdrasilPlugin.PillarRadius.Value));
                     pending.Remove(pillar);
                     added = true;
                 }
@@ -102,7 +102,7 @@ namespace RuneVault.Pieces
         internal bool Covers(Vector3 position) => NetworkSpheres().Any(sp => sp.Contains(position));
 
         private static string CostFor(int level) =>
-            level == 1 ? RuneVaultPlugin.CostLevel1.Value : level == 2 ? RuneVaultPlugin.CostLevel2.Value : "";
+            level == 1 ? YggdrasilPlugin.CostLevel1.Value : level == 2 ? YggdrasilPlugin.CostLevel2.Value : "";
 
         /// <summary>Un material del costo. (Sin tuplas: System.ValueTuple no existe en el runtime de Valheim.)</summary>
         private sealed class CostEntry

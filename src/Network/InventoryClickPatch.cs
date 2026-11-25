@@ -1,7 +1,7 @@
 using HarmonyLib;
-using RuneVault.UI;
+using YggdrasilNetwork.UI;
 
-namespace RuneVault.Network
+namespace YggdrasilNetwork.Network
 {
     /// <summary>
     /// Con la terminal abierta, Ctrl+clic en un objeto de tu inventario lo guarda en la red

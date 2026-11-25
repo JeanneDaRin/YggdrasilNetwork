@@ -1,5 +1,19 @@
+# Compilación
 bin/
 obj/
-.vs/
-*.user
 *.zip
+
+# Editores
+.vs/
+.vscode/
+.idea/
+*.user
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Material de trabajo (imágenes de Gemini, modelos 3D en proceso).
+# Lo que usa el mod ya está en Assets/ y Thunderstore/icon.png.
+imagenes y modelos/

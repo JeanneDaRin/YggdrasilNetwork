@@ -2,11 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using RuneVault.Pieces;
+using YggdrasilNetwork.Pieces;
 using UnityEngine;
-using static RuneVault.I18n.Texts;
+using static YggdrasilNetwork.I18n.Texts;
 
-namespace RuneVault.Network
+namespace YggdrasilNetwork.Network
 {
     /// <summary>
     /// La red vista desde el servidor: núcleo, pilares conectados y todos los cofres de la red con su contenido,
@@ -31,9 +31,9 @@ namespace RuneVault.Network
         private const string QueryRpc = "RuneVault_NetQuery";
         private const string QueryResultRpc = "RuneVault_NetQueryResult";
         private const string TakeRpc = "RuneVault_RemoteTake";
-        private const string TakeResultRpc = "RuneVault_RemoteTakeResult";
+        internal const string TakeResultRpc = "RuneVault_RemoteTakeResult";
         private const string StoreRpc = "RuneVault_RemoteStore";
-        private const string StoreResultRpc = "RuneVault_RemoteStoreResult";
+        internal const string StoreResultRpc = "RuneVault_RemoteStoreResult";
 
         /// <summary>Copia de un cofre según el último dato del servidor.</summary>
         internal sealed class RemoteChest
@@ -78,7 +78,7 @@ namespace RuneVault.Network
             var list = new List<NetworkSphere>();
             if (!HasCore) return list;
             list.Add(new NetworkSphere(CorePosition, StorageCore.RadiusFor(StorageCore.WorldLevel)));
-            foreach (var p in Pillars) list.Add(new NetworkSphere(p, RuneVaultPlugin.PillarRadius.Value));
+            foreach (var p in Pillars) list.Add(new NetworkSphere(p, YggdrasilPlugin.PillarRadius.Value));
             return list;
         }
 
@@ -208,13 +208,18 @@ namespace RuneVault.Network
                     foreach (var p in pending.ToList())
                     {
                         if (!spheres.Any(s => s.Contains(p))) continue;
-                        spheres.Add(new NetworkSphere(p, RuneVaultPlugin.PillarRadius.Value));
+                        spheres.Add(new NetworkSphere(p, YggdrasilPlugin.PillarRadius.Value));
                         connectedPillars.Add(p);
                         pending.Remove(p);
                         added = true;
                     }
                 }
             }
+
+            var wardPrefabs = WardPrefabs();
+            var wards = all.Where(z => wardPrefabs.ContainsKey(z.GetPrefab()) && z.GetBool(ZDOVars.s_enabled, false))
+                           .Select(z => new WardInfo { Zdo = z, Radius = wardPrefabs[z.GetPrefab()] })
+                           .ToList();
 
             var chests = new List<ZDO>();
             foreach (var z in all)
@@ -225,11 +230,12 @@ namespace RuneVault.Network
                 if (!linked && !spheres.Any(s => s.Contains(z.GetPosition()))) continue;
                 if (z.GetLong(ZDOVars.s_creator, 0L) == 0L) continue;   // cofres del mundo (mazmorras, ruinas): nadie los construyó
                 if (IsPrivateOfOther(z, playerId)) continue;
+                if (BlockedByWard(z.GetPosition(), playerId, wards)) continue;
                 chests.Add(z);
             }
 
-            if (RuneVaultPlugin.DebugLog.Value)
-                RuneVaultPlugin.Log.LogInfo($"[Debug] Servidor: núcleo {(core != null)}, {connectedPillars.Count} pilares, {chests.Count} cofres en la red");
+            if (YggdrasilPlugin.DebugLog.Value)
+                YggdrasilPlugin.Log.LogInfo($"[Debug] Servidor: núcleo {(core != null)}, {connectedPillars.Count} pilares, {chests.Count} cofres en la red");
 
             var reply = new ZPackage();
             reply.Write(core != null);
@@ -250,6 +256,46 @@ namespace RuneVault.Network
                 reply.Write(z.GetByteArray(ZDOVars.s_items, null) ?? new byte[0]);
             }
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, QueryResultRpc, reply);
+        }
+
+        private sealed class WardInfo
+        {
+            public ZDO Zdo;
+            public float Radius;
+        }
+
+        private static Dictionary<int, float> _wardPrefabs;
+
+        /// <summary>Prefabs de guardas (PrivateArea) y su radio.</summary>
+        private static Dictionary<int, float> WardPrefabs()
+        {
+            if (_wardPrefabs != null) return _wardPrefabs;
+            _wardPrefabs = new Dictionary<int, float>();
+            foreach (var prefab in ZNetScene.instance.m_prefabs)
+            {
+                var area = prefab ? prefab.GetComponent<PrivateArea>() : null;
+                if (area) _wardPrefabs[prefab.name.GetStableHashCode()] = area.m_radius;
+            }
+            return _wardPrefabs;
+        }
+
+        /// <summary>
+        /// Igual que en el juego: un cofre dentro de una guarda activa solo se usa si el jugador es su dueño
+        /// o está en su lista de permitidos.
+        /// </summary>
+        private static bool BlockedByWard(Vector3 pos, long playerId, List<WardInfo> wards)
+        {
+            foreach (var w in wards)
+            {
+                if (Vector3.Distance(w.Zdo.GetPosition(), pos) > w.Radius) continue;
+                if (w.Zdo.GetLong(ZDOVars.s_creator, 0L) == playerId) continue;
+                int permitted = w.Zdo.GetInt(ZDOVars.s_permitted, 0);
+                bool allowed = false;
+                for (int i = 0; i < permitted && !allowed; i++)
+                    allowed = w.Zdo.GetLong("pu_id" + i, 0L) == playerId;
+                if (!allowed) return true;
+            }
+            return false;
         }
 
         /// <summary>Cofres privados (el personal del juego) de otro jugador no entran.</summary>
@@ -279,7 +325,7 @@ namespace RuneVault.Network
         private static Inventory LoadInventory(ZDO zdo)
         {
             var size = ChestSize(zdo);
-            var inv = new Inventory("RuneVaultRemote", null, size.x, size.y);
+            var inv = new Inventory("YggdrasilRemote", null, size.x, size.y);
             var data = zdo.GetByteArray(ZDOVars.s_items, null);   // el juego guarda el inventario como bytes
             if (data != null && data.Length > 0) inv.Load(new ZPackage(data));
             return inv;
@@ -300,6 +346,20 @@ namespace RuneVault.Network
             int quality = pkg.ReadInt();
             int variant = pkg.ReadInt();
             int wanted = pkg.ReadInt();
+
+            // Lo tiene cargado otro jugador: su juego manda sobre el cofre, así que se le reenvía el pedido
+            // y él responde directo a quien lo pidió.
+            if (zdo != null && !ServerMayEdit(zdo))
+            {
+                var fwd = new ZPackage();
+                fwd.Write(sender);
+                fwd.Write(name);
+                fwd.Write(quality);
+                fwd.Write(variant);
+                fwd.Write(wanted);
+                ZRoutedRpc.instance.InvokeRoutedRPC(zdo.GetOwner(), zdo.m_uid, ChestRpc.TakeForRpc, fwd);
+                return;
+            }
 
             var removed = new List<ItemDrop.ItemData>();
             if (ServerMayEdit(zdo))
@@ -326,7 +386,18 @@ namespace RuneVault.Network
         {
             if (!ZNet.instance || !ZNet.instance.IsServer()) return;
             var zdo = ZDOMan.instance.GetZDO(pkg.ReadZDOID());
-            var incoming = ChestRpc.Unpack(pkg.ReadPackage());
+            var itemsPkg = pkg.ReadPackage();
+
+            if (zdo != null && !ServerMayEdit(zdo))
+            {
+                var fwd = new ZPackage();
+                fwd.Write(sender);
+                fwd.Write(itemsPkg);
+                ZRoutedRpc.instance.InvokeRoutedRPC(zdo.GetOwner(), zdo.m_uid, ChestRpc.StoreForRpc, fwd);
+                return;
+            }
+
+            var incoming = ChestRpc.Unpack(itemsPkg);
             var leftovers = new List<ItemDrop.ItemData>();
 
             if (!ServerMayEdit(zdo))
@@ -388,7 +459,7 @@ namespace RuneVault.Network
                 // Con el tamaño real: así se sabe de antemano si un ítem nuevo cabe (antes se suponía
                 // espacio de sobra, el primer cofre lleno lo rechazaba y no se probaba el siguiente).
                 int w = pkg.ReadInt(), h = pkg.ReadInt();
-                chest.Inventory = new Inventory("RuneVaultRemote", null, Mathf.Max(1, w), Mathf.Max(1, h));
+                chest.Inventory = new Inventory("YggdrasilRemote", null, Mathf.Max(1, w), Mathf.Max(1, h));
                 var data = pkg.ReadByteArray();
                 try
                 {
@@ -396,14 +467,14 @@ namespace RuneVault.Network
                 }
                 catch (System.Exception e)
                 {
-                    RuneVaultPlugin.Log.LogWarning($"Cofre {chest.Id}: no se pudo leer su inventario: {e.Message}");
+                    YggdrasilPlugin.Log.LogWarning($"Cofre {chest.Id}: no se pudo leer su inventario: {e.Message}");
                 }
                 Known.Add(chest);
             }
             ReceivedAt = Time.time;
 
-            if (RuneVaultPlugin.DebugLog.Value)
-                RuneVaultPlugin.Log.LogInfo($"[Debug] Red según el servidor: núcleo {HasCore}, {Pillars.Count} pilares, " +
+            if (YggdrasilPlugin.DebugLog.Value)
+                YggdrasilPlugin.Log.LogInfo($"[Debug] Red según el servidor: núcleo {HasCore}, {Pillars.Count} pilares, " +
                                             $"{Known.Count} cofres ({Known.Count(c => c.Linked)} vinculados, {Known.Count(c => !IsLoadedHere(c.Id))} lejanos)");
             UI.TerminalWindow.NotifyChanged();
         }

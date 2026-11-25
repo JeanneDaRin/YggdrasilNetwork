@@ -2,7 +2,7 @@ using System.IO;
 using Jotunn.Utils;
 using UnityEngine;
 
-namespace RuneVault
+namespace YggdrasilNetwork
 {
     /// <summary>
     /// Apariencia propia sin modelos nuevos: íconos PNG que viajan junto al DLL (carpeta Assets),
@@ -15,7 +15,7 @@ namespace RuneVault
         public static readonly Color RunePurple = new Color(0.72f, 0.40f, 1.00f);
 
         private static string AssetsDir =>
-            Path.Combine(Path.GetDirectoryName(typeof(RuneVaultPlugin).Assembly.Location) ?? "", "Assets");
+            Path.Combine(Path.GetDirectoryName(typeof(YggdrasilPlugin).Assembly.Location) ?? "", "Assets");
 
         /// <summary>Carga Assets/icon_{name}.png como sprite, o null si falta (la pieza queda con el ícono original).</summary>
         public static Sprite Icon(string name)
@@ -23,7 +23,7 @@ namespace RuneVault
             string path = Path.Combine(AssetsDir, $"icon_{name}.png");
             if (!File.Exists(path))
             {
-                RuneVaultPlugin.Log.LogWarning($"Falta el ícono {path}");
+                YggdrasilPlugin.Log.LogWarning($"Falta el ícono {path}");
                 return null;
             }
             var tex = AssetUtils.LoadTexture(path, false);

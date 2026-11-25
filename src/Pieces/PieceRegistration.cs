@@ -3,7 +3,7 @@ using Jotunn.Entities;
 using Jotunn.Managers;
 using UnityEngine;
 
-namespace RuneVault.Pieces
+namespace YggdrasilNetwork.Pieces
 {
     internal static class PieceRegistration
     {
@@ -16,7 +16,7 @@ namespace RuneVault.Pieces
         public const int AbyssalHeight = 8;
 
         /// <summary>Pestaña propia en el martillo (Jötunn la crea si no existe).</summary>
-        public const string HammerCategory = "Rune Vault";
+        public const string HammerCategory = "Yggdrasil";
 
         public static void Init()
         {
@@ -44,8 +44,14 @@ namespace RuneVault.Pieces
             });
             core.PiecePrefab.AddComponent<StorageCore>();
             core.PiecePrefab.AddComponent<RangeMarker>();
-            Visuals.Tint(core.PiecePrefab, new Color(0.80f, 0.90f, 1.15f), Visuals.RuneBlue * 0.35f);
-            Visuals.AddLight(core.PiecePrefab, Visuals.RuneBlue, 5f, 1.6f, 2.2f);
+            // Modelo propio (pedestal con cristal flotante). Si no se pudo armar, queda el pilar de piedra teñido.
+            if (Models.CoreModel.Apply(core.PiecePrefab))
+                Models.ModelKit.AddLight(core.PiecePrefab, Models.ModelKit.GlowBlue, 5f, 1.0f, Models.CoreModel.CrystalPos);
+            else
+            {
+                Visuals.Tint(core.PiecePrefab, new Color(0.80f, 0.90f, 1.15f), Visuals.RuneBlue * 0.35f);
+                Visuals.AddLight(core.PiecePrefab, Visuals.RuneBlue, 5f, 1.6f, 2.2f);
+            }
 
             // El pilar original es de piedra y la piedra no se sostiene sobre madera.
             // Como madera se puede poner sobre pisos de madera y sobre el suelo.
@@ -53,7 +59,7 @@ namespace RuneVault.Pieces
             if (wear) wear.m_materialType = WearNTear.MaterialType.Wood;
             PieceManager.Instance.AddPiece(core);
 
-            // Terminal de acceso: por ahora usa el modelo de la mesa de madera.
+            // Terminal de acceso: parte de la mesa de madera (interacción y soporte) con modelo propio.
             string terminalBase = PrefabManager.Instance.GetPrefab("piece_table") ? "piece_table" : "stone_pillar";
             var terminal = new CustomPiece(TerminalPrefab, terminalBase, new PieceConfig
             {
@@ -70,13 +76,19 @@ namespace RuneVault.Pieces
                 },
             });
             terminal.PiecePrefab.AddComponent<AccessTerminal>();
-            Visuals.Tint(terminal.PiecePrefab, new Color(0.85f, 0.92f, 1.10f), Visuals.RuneBlue * 0.20f);
-            Visuals.AddLight(terminal.PiecePrefab, Visuals.RuneBlue, 3f, 1.0f, 1.4f);
+            // Modelo propio (losa rúnica). Si no se pudo armar, queda la mesa teñida.
+            if (Models.TerminalModel.Apply(terminal.PiecePrefab))
+                Models.ModelKit.AddLight(terminal.PiecePrefab, Models.ModelKit.GlowBlue, 3f, 0.8f, new Vector3(0f, 1.75f, 0f));
+            else
+            {
+                Visuals.Tint(terminal.PiecePrefab, new Color(0.85f, 0.92f, 1.10f), Visuals.RuneBlue * 0.20f);
+                Visuals.AddLight(terminal.PiecePrefab, Visuals.RuneBlue, 3f, 1.0f, 1.4f);
+            }
             var terminalWear = terminal.PiecePrefab.GetComponent<WearNTear>();
             if (terminalWear) terminalWear.m_materialType = WearNTear.MaterialType.Wood;
             PieceManager.Instance.AddPiece(terminal);
 
-            // Pilar rúnico (Llanuras). Por ahora usa el modelo del poste de madera.
+            // Pilar rúnico (Llanuras). Parte del poste de madera (colocación y soporte de madera) con modelo propio.
             string pillarBase = PrefabManager.Instance.GetPrefab("wood_pole2") ? "wood_pole2" : "stone_pillar";
             var pillar = new CustomPiece(PillarPrefab, pillarBase, new PieceConfig
             {
@@ -92,10 +104,14 @@ namespace RuneVault.Pieces
                     new RequirementConfig("TrophyGoblinShaman", 1, 0, false),
                 },
             });
+            // Modelo propio (obelisco con runas). Si no se pudo armar, queda el poste teñido.
+            if (!Models.PillarModel.Apply(pillar.PiecePrefab))
+                Visuals.Tint(pillar.PiecePrefab, new Color(0.55f, 0.48f, 0.70f), Visuals.RunePurple * 0.40f);
+            var pillarWear = pillar.PiecePrefab.GetComponent<WearNTear>();
+            if (pillarWear) pillarWear.m_health = Mathf.Max(pillarWear.m_health, 1000f);
             pillar.PiecePrefab.AddComponent<RunePillar>();
             pillar.PiecePrefab.AddComponent<RangeMarker>();
-            Visuals.Tint(pillar.PiecePrefab, new Color(0.55f, 0.48f, 0.70f), Visuals.RunePurple * 0.40f);
-            Visuals.AddLight(pillar.PiecePrefab, Visuals.RunePurple, 5f, 1.5f, 2.0f);
+            Visuals.AddLight(pillar.PiecePrefab, Models.PillarModel.RuneColor, 4f, 0.8f, 1.8f);
             PieceManager.Instance.AddPiece(pillar);
 
             // Cofre vinculado (Pantano): mismo espacio que el cofre de metal negro.
@@ -148,7 +164,7 @@ namespace RuneVault.Pieces
             }
             PieceManager.Instance.AddPiece(abyssal);
 
-            RuneVaultPlugin.Log.LogInfo($"Piezas registradas: {CorePrefab}, {TerminalPrefab} (base {terminalBase})");
+            YggdrasilPlugin.Log.LogInfo($"Piezas registradas: {CorePrefab}, {TerminalPrefab} (base {terminalBase})");
         }
     }
 }

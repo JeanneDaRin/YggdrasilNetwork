@@ -2,9 +2,9 @@ using HarmonyLib;
 using Jotunn.Configs;
 using Jotunn.Entities;
 using Jotunn.Managers;
-using RuneVault.UI;
+using YggdrasilNetwork.UI;
 
-namespace RuneVault.Items
+namespace YggdrasilNetwork.Items
 {
     /// <summary>
     /// Runa de acceso (Ashlands): usarla desde el inventario o la barra rápida abre la red desde cualquier lugar

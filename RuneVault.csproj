@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <AssemblyName>RuneVault</AssemblyName>
-    <RootNamespace>RuneVault</RootNamespace>
+    <AssemblyName>YggdrasilNetwork</AssemblyName>
+    <RootNamespace>YggdrasilNetwork</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Version>0.1.0</Version>
+    <Version>1.0.0</Version>
+    <Product>Yggdrasil Network</Product>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <DebugType>portable</DebugType>
@@ -19,7 +20,7 @@
     <ProfileDir Condition="'$(ProfileDir)' == ''">$(APPDATA)\Thunderstore Mod Manager\DataFolder\Valheim\profiles\nibba</ProfileDir>
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
     <BepInExDir>$(ProfileDir)\BepInEx</BepInExDir>
-    <DeployDir>$(BepInExDir)\plugins\RuneVault</DeployDir>
+    <DeployDir>$(BepInExDir)\plugins\YggdrasilNetwork</DeployDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -53,10 +54,28 @@
     <Copy SourceFiles="$(TargetDir)$(AssemblyName).dll" DestinationFolder="$(DeployDir)" />
     <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="$(DeployDir)" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
     <ItemGroup>
-      <RuneVaultAssets Include="$(MSBuildProjectDirectory)\Assets\*.png" />
+      <YggdrasilAssets Include="$(MSBuildProjectDirectory)\Assets\*.png" />
     </ItemGroup>
-    <Copy SourceFiles="@(RuneVaultAssets)" DestinationFolder="$(DeployDir)\Assets" />
-    <Message Importance="high" Text="Rune Vault copiado a $(DeployDir)" />
+    <Copy SourceFiles="@(YggdrasilAssets)" DestinationFolder="$(DeployDir)\Assets" />
+    <Message Importance="high" Text="Yggdrasil Network copiado a $(DeployDir)" />
+  </Target>
+
+  <!-- Paquete para Thunderstore: bin\Release\RuneVault-<versión>.zip -->
+  <Target Name="ThunderstorePackage" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <PackageDir>$(MSBuildProjectDirectory)\obj\thunderstore</PackageDir>
+      <PackageZip>$(MSBuildProjectDirectory)\bin\Release\YggdrasilNetwork-$(Version).zip</PackageZip>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageAssets Include="$(MSBuildProjectDirectory)\Assets\*.png" />
+    </ItemGroup>
+    <RemoveDir Directories="$(PackageDir)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Thunderstore\manifest.json;$(MSBuildProjectDirectory)\Thunderstore\icon.png;$(MSBuildProjectDirectory)\README.md;$(MSBuildProjectDirectory)\CHANGELOG.md;$(TargetDir)$(AssemblyName).dll"
+          DestinationFolder="$(PackageDir)" />
+    <Copy SourceFiles="@(PackageAssets)" DestinationFolder="$(PackageDir)\Assets" />
+    <Delete Files="$(PackageZip)" />
+    <ZipDirectory SourceDirectory="$(PackageDir)" DestinationFile="$(PackageZip)" />
+    <Message Importance="high" Text="Paquete de Thunderstore: $(PackageZip)" />
   </Target>
 
 </Project>

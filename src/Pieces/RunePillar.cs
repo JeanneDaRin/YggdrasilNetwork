@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static RuneVault.I18n.Texts;
+using static YggdrasilNetwork.I18n.Texts;
 
-namespace RuneVault.Pieces
+namespace YggdrasilNetwork.Pieces
 {
     /// <summary>
     /// Pilar rúnico: extiende la red. Se conecta si está dentro del radio del núcleo o de otro pilar
@@ -28,7 +28,7 @@ namespace RuneVault.Pieces
         public string GetHoverText()
         {
             bool connected = StorageCore.FindFor(transform.position);
-            string radius = RuneVaultPlugin.PillarRadius.Value.ToString("0");
+            string radius = YggdrasilPlugin.PillarRadius.Value.ToString("0");
             return $"{GetHoverName()}\n" + (connected
                 ? $"<color=#9cf09c>{T("rv_pillar_connected", radius)}</color>"
                 : $"<color=red>{T("rv_pillar_disconnected")}</color>");

@@ -1,8 +1,8 @@
-using RuneVault.UI;
+using YggdrasilNetwork.UI;
 using UnityEngine;
-using static RuneVault.I18n.Texts;
+using static YggdrasilNetwork.I18n.Texts;
 
-namespace RuneVault.Pieces
+namespace YggdrasilNetwork.Pieces
 {
     /// <summary>Terminal de acceso: abre la ventana de la red del núcleo más cercano.</summary>
     public class AccessTerminal : MonoBehaviour, Hoverable, Interactable

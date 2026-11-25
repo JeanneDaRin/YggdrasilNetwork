@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using RuneVault.UI;
+using YggdrasilNetwork.UI;
 using UnityEngine;
-using static RuneVault.I18n.Texts;
+using static YggdrasilNetwork.I18n.Texts;
 
-namespace RuneVault.Network
+namespace YggdrasilNetwork.Network
 {
     /// <summary>
     /// Mensajes entre jugadores para mover ítems de un cofre de la red.
@@ -30,6 +30,8 @@ namespace RuneVault.Network
             nview.Register<ZPackage>(TakeResultRpc, (sender, pkg) => OnTakeResult(pkg));
             nview.Register<ZPackage>(StoreRpc, (sender, pkg) => OnStore(container, sender, pkg));
             nview.Register<ZPackage>(StoreResultRpc, (sender, pkg) => OnStoreResult(pkg));
+            nview.Register<ZPackage>(TakeForRpc, (sender, pkg) => OnTakeFor(container, pkg));
+            nview.Register<ZPackage>(StoreForRpc, (sender, pkg) => OnStoreFor(container, pkg));
         }
 
         // ---------- Pedidos (quien usa la terminal) ----------
@@ -55,11 +57,29 @@ namespace RuneVault.Network
 
         // ---------- Dueño del cofre ----------
 
+        /// <summary>Pedido de otro jugador reenviado por el servidor (el cofre estaba lejos para él y cargado aquí).</summary>
+        internal const string TakeForRpc = "RuneVault_TakeFor";
+        internal const string StoreForRpc = "RuneVault_StoreFor";
+
         private static void OnTake(Container chest, long sender, ZPackage pkg)
         {
             var nview = ContainerRegistry.NView(chest);
             if (!nview || !nview.IsOwner()) return;   // ya no somos dueños: el pedido se pierde sin mover nada
+            var removed = TakeFrom(chest, pkg);
+            nview.InvokeRPC(sender, TakeResultRpc, Pack(removed));
+        }
 
+        private static void OnTakeFor(Container chest, ZPackage pkg)
+        {
+            long replyTo = pkg.ReadLong();
+            var nview = ContainerRegistry.NView(chest);
+            var removed = nview && nview.IsOwner() ? TakeFrom(chest, pkg) : new List<ItemDrop.ItemData>();
+            ZRoutedRpc.instance.InvokeRoutedRPC(replyTo, LinkedChests.TakeResultRpc, Pack(removed));
+        }
+
+        /// <summary>Saca del cofre hasta lo pedido (nombre, calidad, variante, cantidad).</summary>
+        private static List<ItemDrop.ItemData> TakeFrom(Container chest, ZPackage pkg)
+        {
             string name = pkg.ReadString();
             int quality = pkg.ReadInt();
             int variant = pkg.ReadInt();
@@ -80,14 +100,26 @@ namespace RuneVault.Network
                 removed.Add(copy);
                 left -= n;
             }
-
-            nview.InvokeRPC(sender, TakeResultRpc, Pack(removed));
+            return removed;
         }
 
         private static void OnStore(Container chest, long sender, ZPackage pkg)
         {
             var nview = ContainerRegistry.NView(chest);
-            var incoming = Unpack(pkg);
+            nview.InvokeRPC(sender, StoreResultRpc, StoreInto(chest, Unpack(pkg)));
+        }
+
+        private static void OnStoreFor(Container chest, ZPackage pkg)
+        {
+            long replyTo = pkg.ReadLong();
+            var incoming = Unpack(pkg.ReadPackage());
+            ZRoutedRpc.instance.InvokeRoutedRPC(replyTo, LinkedChests.StoreResultRpc, StoreInto(chest, incoming));
+        }
+
+        /// <summary>Guarda lo que quepa y arma la respuesta: sobrantes + cantidad guardada + nombre.</summary>
+        private static ZPackage StoreInto(Container chest, List<ItemDrop.ItemData> incoming)
+        {
+            var nview = ContainerRegistry.NView(chest);
             var leftovers = new List<ItemDrop.ItemData>();
 
             if (!nview || !nview.IsOwner())
@@ -118,7 +150,7 @@ namespace RuneVault.Network
             var reply = Pack(leftovers);
             reply.Write(incoming.Sum(i => i.m_stack) - leftovers.Sum(i => i.m_stack));
             reply.Write(incoming.Count > 0 ? incoming[0].m_shared.m_name : "");
-            nview.InvokeRPC(sender, StoreResultRpc, reply);
+            return reply;
         }
 
         // ---------- Respuestas (quien usa la terminal) ----------
@@ -186,7 +218,7 @@ namespace RuneVault.Network
         internal static ZPackage Pack(IEnumerable<ItemDrop.ItemData> items)
         {
             var list = items.ToList();
-            var temp = new Inventory("RuneVault", null, 8, Mathf.Max(1, list.Count));
+            var temp = new Inventory("Yggdrasil", null, 8, Mathf.Max(1, list.Count));
             int y = 0;
             foreach (var item in list)
             {
@@ -200,7 +232,7 @@ namespace RuneVault.Network
 
         internal static List<ItemDrop.ItemData> Unpack(ZPackage pkg)
         {
-            var temp = new Inventory("RuneVault", null, 8, 64);
+            var temp = new Inventory("Yggdrasil", null, 8, 64);
             temp.Load(pkg);
             return temp.GetAllItems().ToList();
         }

@@ -4,7 +4,7 @@ using System.Linq;
 using HarmonyLib;
 using UnityEngine;
 
-namespace RuneVault.Network
+namespace YggdrasilNetwork.Network
 {
     /// <summary>Una zona esférica de la red (el núcleo o un pilar).</summary>
     internal sealed class NetworkSphere
@@ -114,9 +114,11 @@ namespace RuneVault.Network
 
         public static StorageNetwork In(List<NetworkSphere> spheres, long playerId)
         {
-            bool onlyOwn = RuneVaultPlugin.ChestFilterMode.Value == ChestFilter.SoloPropios;
+            bool onlyOwn = YggdrasilPlugin.ChestFilterMode.Value == ChestFilter.SoloPropios;
             var loaded = ContainerRegistry.FindInSpheres(spheres)
                 .Where(c => CheckAccess(c, playerId))
+                // Igual que al abrirlo a mano: dentro de una guarda ajena, sin permiso, no se usa.
+                .Where(c => PrivateArea.CheckAccess(c.transform.position, 0f, false, false))
                 .Where(c => !onlyOwn || c.GetComponent<Pieces.LinkedChest>() || c.GetComponent<Piece>().GetCreator() == playerId)
                 .ToList();
 

@@ -1,10 +1,10 @@
 {
-  "name": "RuneVault",
-  "version_number": "0.1.0",
-  "website_url": "",
-  "description": "Une tus cofres en una red de almacenamiento rúnica con terminal de acceso y crafteo.",
+  "name": "YggdrasilNetwork",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/JeanneDaRin/yggdrasilnetwork",
+  "description": "Link your chests into a rune network: one terminal to search, take and store from every chest. Pillars, linked chests and runes that grow with your progression.",
   "dependencies": [
-    "denikson-BepInExPack_Valheim-5.4.2360",
+    "denikson-BepInExPack_Valheim-5.4.2333",
     "ValheimModding-Jotunn-2.30.2"
   ]
 }

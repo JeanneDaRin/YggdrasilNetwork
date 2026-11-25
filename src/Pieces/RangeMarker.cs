@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace RuneVault.Pieces
+namespace YggdrasilNetwork.Pieces
 {
     /// <summary>
     /// Círculo en el suelo que muestra el alcance del núcleo o de un pilar, igual al del banco de trabajo.
@@ -46,7 +46,7 @@ namespace RuneVault.Pieces
         private float CurrentRadius()
         {
             if (_core) return _core.Radius;
-            return RuneVaultPlugin.PillarRadius.Value;
+            return YggdrasilPlugin.PillarRadius.Value;
         }
 
         private void Update()
