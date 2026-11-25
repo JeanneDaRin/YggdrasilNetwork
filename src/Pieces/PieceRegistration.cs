@@ -1,6 +1,7 @@
 using Jotunn.Configs;
 using Jotunn.Entities;
 using Jotunn.Managers;
+using UnityEngine;
 
 namespace RuneVault.Pieces
 {
@@ -30,6 +31,7 @@ namespace RuneVault.Pieces
             var core = new CustomPiece(CorePrefab, "stone_pillar", new PieceConfig
             {
                 Name = "$rv_core_name",
+                Icon = Visuals.Icon("core"),
                 Description = "$rv_core_desc",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceRegistration.HammerCategory,
@@ -42,6 +44,8 @@ namespace RuneVault.Pieces
             });
             core.PiecePrefab.AddComponent<StorageCore>();
             core.PiecePrefab.AddComponent<RangeMarker>();
+            Visuals.Tint(core.PiecePrefab, new Color(0.80f, 0.90f, 1.15f), Visuals.RuneBlue * 0.35f);
+            Visuals.AddLight(core.PiecePrefab, Visuals.RuneBlue, 5f, 1.6f, 2.2f);
 
             // El pilar original es de piedra y la piedra no se sostiene sobre madera.
             // Como madera se puede poner sobre pisos de madera y sobre el suelo.
@@ -54,6 +58,7 @@ namespace RuneVault.Pieces
             var terminal = new CustomPiece(TerminalPrefab, terminalBase, new PieceConfig
             {
                 Name = "$rv_terminal_name",
+                Icon = Visuals.Icon("terminal"),
                 Description = "$rv_terminal_desc",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceRegistration.HammerCategory,
@@ -65,6 +70,8 @@ namespace RuneVault.Pieces
                 },
             });
             terminal.PiecePrefab.AddComponent<AccessTerminal>();
+            Visuals.Tint(terminal.PiecePrefab, new Color(0.85f, 0.92f, 1.10f), Visuals.RuneBlue * 0.20f);
+            Visuals.AddLight(terminal.PiecePrefab, Visuals.RuneBlue, 3f, 1.0f, 1.4f);
             var terminalWear = terminal.PiecePrefab.GetComponent<WearNTear>();
             if (terminalWear) terminalWear.m_materialType = WearNTear.MaterialType.Wood;
             PieceManager.Instance.AddPiece(terminal);
@@ -74,6 +81,7 @@ namespace RuneVault.Pieces
             var pillar = new CustomPiece(PillarPrefab, pillarBase, new PieceConfig
             {
                 Name = "$rv_pillar_name",
+                Icon = Visuals.Icon("pillar"),
                 Description = "$rv_pillar_desc",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceRegistration.HammerCategory,
@@ -86,12 +94,15 @@ namespace RuneVault.Pieces
             });
             pillar.PiecePrefab.AddComponent<RunePillar>();
             pillar.PiecePrefab.AddComponent<RangeMarker>();
+            Visuals.Tint(pillar.PiecePrefab, new Color(0.55f, 0.48f, 0.70f), Visuals.RunePurple * 0.40f);
+            Visuals.AddLight(pillar.PiecePrefab, Visuals.RunePurple, 5f, 1.5f, 2.0f);
             PieceManager.Instance.AddPiece(pillar);
 
             // Cofre vinculado (Pantano): mismo espacio que el cofre de metal negro.
             var linked = new CustomPiece(LinkedChestPrefab, "piece_chest_blackmetal", new PieceConfig
             {
                 Name = "$rv_linked_name",
+                Icon = Visuals.Icon("linked"),
                 Description = "$rv_linked_desc",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceRegistration.HammerCategory,
@@ -104,6 +115,8 @@ namespace RuneVault.Pieces
                 },
             });
             linked.PiecePrefab.AddComponent<LinkedChest>();
+            Visuals.Tint(linked.PiecePrefab, new Color(0.70f, 0.85f, 1.25f), Visuals.RuneBlue * 0.25f);
+            Visuals.AddLight(linked.PiecePrefab, Visuals.RuneBlue, 2.5f, 0.8f, 1.0f);
             var linkedContainer = linked.PiecePrefab.GetComponent<Container>();
             if (linkedContainer) linkedContainer.m_name = "$rv_linked_name";
             PieceManager.Instance.AddPiece(linked);
@@ -112,6 +125,7 @@ namespace RuneVault.Pieces
             var abyssal = new CustomPiece(AbyssalChestPrefab, "piece_chest_blackmetal", new PieceConfig
             {
                 Name = "$rv_abyssal_name",
+                Icon = Visuals.Icon("abyssal"),
                 Description = "$rv_abyssal_desc",
                 PieceTable = PieceTables.Hammer,
                 Category = PieceRegistration.HammerCategory,
@@ -123,6 +137,8 @@ namespace RuneVault.Pieces
                 },
             });
             abyssal.PiecePrefab.AddComponent<AbyssalChest>();
+            Visuals.Tint(abyssal.PiecePrefab, new Color(0.45f, 0.32f, 0.62f), Visuals.RunePurple * 0.45f);
+            Visuals.AddLight(abyssal.PiecePrefab, Visuals.RunePurple, 3.5f, 1.2f, 1.2f);
             var abyssalContainer = abyssal.PiecePrefab.GetComponent<Container>();
             if (abyssalContainer)
             {

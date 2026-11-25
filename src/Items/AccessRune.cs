@@ -28,6 +28,7 @@ namespace RuneVault.Items
             var rune = new CustomItem(Prefab, "Thunderstone", new ItemConfig
             {
                 Name = NameToken,
+                Icons = IconOrNone("rune_access"),
                 Description = "$rv_rune_desc",
                 CraftingStation = "piece_magetable",
                 Requirements = new[]
@@ -39,6 +40,7 @@ namespace RuneVault.Items
             var shared = rune.ItemDrop.m_itemData.m_shared;
             shared.m_maxStackSize = 1;
             shared.m_teleportable = true;
+            Visuals.Tint(rune.ItemDrop.gameObject, new UnityEngine.Color(0.75f, 0.90f, 1.20f), Visuals.RuneBlue * 0.5f);
             ItemManager.Instance.AddItem(rune);
 
             // La ventana de crafteo del juego muestra como máximo 4 materiales, y la runa necesita 5
@@ -46,6 +48,7 @@ namespace RuneVault.Items
             var crystal = new CustomItem(CrystalPrefab, "Thunderstone", new ItemConfig
             {
                 Name = "$rv_crystal_name",
+                Icons = IconOrNone("crystal"),
                 Description = "$rv_crystal_desc",
                 CraftingStation = "piece_magetable",
                 Requirements = new[]
@@ -57,12 +60,14 @@ namespace RuneVault.Items
                 },
             });
             crystal.ItemDrop.m_itemData.m_shared.m_maxStackSize = 10;
+            Visuals.Tint(crystal.ItemDrop.gameObject, new UnityEngine.Color(0.85f, 0.65f, 1.20f), Visuals.RunePurple * 0.6f);
             ItemManager.Instance.AddItem(crystal);
 
             // Runa del Vacío (Deep North): igual que la de acceso, pero sin límite de distancia.
             var voidRune = new CustomItem(VoidPrefab, "Thunderstone", new ItemConfig
             {
                 Name = VoidNameToken,
+                Icons = IconOrNone("rune_void"),
                 Description = "$rv_void_desc",
                 CraftingStation = "piece_magetable",
                 Requirements = new[]
@@ -74,7 +79,14 @@ namespace RuneVault.Items
             var voidShared = voidRune.ItemDrop.m_itemData.m_shared;
             voidShared.m_maxStackSize = 1;
             voidShared.m_teleportable = true;
+            Visuals.Tint(voidRune.ItemDrop.gameObject, new UnityEngine.Color(0.45f, 0.35f, 0.65f), Visuals.RunePurple * 0.6f);
             ItemManager.Instance.AddItem(voidRune);
+        }
+
+        private static UnityEngine.Sprite[] IconOrNone(string name)
+        {
+            var icon = Visuals.Icon(name);
+            return icon ? new[] { icon } : null;
         }
 
         internal static bool Is(ItemDrop.ItemData item) => item != null && item.m_shared.m_name == NameToken;

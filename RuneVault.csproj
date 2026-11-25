@@ -52,6 +52,10 @@
     <MakeDir Directories="$(DeployDir)" />
     <Copy SourceFiles="$(TargetDir)$(AssemblyName).dll" DestinationFolder="$(DeployDir)" />
     <Copy SourceFiles="$(TargetDir)$(AssemblyName).pdb" DestinationFolder="$(DeployDir)" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+    <ItemGroup>
+      <RuneVaultAssets Include="$(MSBuildProjectDirectory)\Assets\*.png" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RuneVaultAssets)" DestinationFolder="$(DeployDir)\Assets" />
     <Message Importance="high" Text="Rune Vault copiado a $(DeployDir)" />
   </Target>
 
