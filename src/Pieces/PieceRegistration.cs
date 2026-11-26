@@ -101,7 +101,7 @@ namespace YggdrasilNetwork.Pieces
                 Requirements = new[]
                 {
                     new RequirementConfig("BlackMetal", 20, 0, true),
-                    new RequirementConfig("TrophyGoblinShaman", 1, 0, false),
+                    new RequirementConfig("TrophyGoblinShaman", 1, 0, true),
                 },
             });
             // Modelo propio (obelisco con runas). Si no se pudo armar, queda el poste teñido.
@@ -127,11 +127,17 @@ namespace YggdrasilNetwork.Pieces
                 {
                     new RequirementConfig("Iron", 30, 0, true),
                     new RequirementConfig("FineWood", 20, 0, true),
-                    new RequirementConfig("TrophyDraugr", 1, 0, false),
+                    new RequirementConfig("TrophyDraugr", 1, 0, true),
                 },
             });
             linked.PiecePrefab.AddComponent<LinkedChest>();
-            Visuals.Tint(linked.PiecePrefab, new Color(0.70f, 0.85f, 1.25f), Visuals.RuneBlue * 0.25f);
+            // Mantiene el cofre de metal negro (tapa animada): sus acentos verdes pasan a azul
+            // y se le agregan placas, trazas de red y un cristal flotante.
+            // El _MetalColor solo tiñe los reflejos: para que el cofre se vea azul también hay que teñir
+            // su color base (igual que el abisal con el morado).
+            Visuals.Tint(linked.PiecePrefab, new Color(0.55f, 0.72f, 1.15f), Visuals.RuneBlue * 0.15f);
+            Models.ModelKit.RecolorAccents(linked.PiecePrefab, new Color(0.60f, 2.20f, 4.50f));
+            Models.ChestModels.Linked(linked.PiecePrefab);
             Visuals.AddLight(linked.PiecePrefab, Visuals.RuneBlue, 2.5f, 0.8f, 1.0f);
             var linkedContainer = linked.PiecePrefab.GetComponent<Container>();
             if (linkedContainer) linkedContainer.m_name = "$rv_linked_name";
@@ -149,11 +155,13 @@ namespace YggdrasilNetwork.Pieces
                 Requirements = new[]
                 {
                     new RequirementConfig("Frostwood", 30, 0, true),
-                    new RequirementConfig("TrophyJotunWitch", 1, 0, false),
+                    new RequirementConfig("TrophyJotunWitch", 1, 0, true),
                 },
             });
             abyssal.PiecePrefab.AddComponent<AbyssalChest>();
-            Visuals.Tint(abyssal.PiecePrefab, new Color(0.45f, 0.32f, 0.62f), Visuals.RunePurple * 0.45f);
+            Visuals.Tint(abyssal.PiecePrefab, new Color(0.42f, 0.34f, 0.55f), Visuals.RunePurple * 0.20f);
+            Models.ModelKit.RecolorAccents(abyssal.PiecePrefab, new Color(0.90f, 0.20f, 1.80f));
+            Models.ChestModels.Abyssal(abyssal.PiecePrefab);
             Visuals.AddLight(abyssal.PiecePrefab, Visuals.RunePurple, 3.5f, 1.2f, 1.2f);
             var abyssalContainer = abyssal.PiecePrefab.GetComponent<Container>();
             if (abyssalContainer)

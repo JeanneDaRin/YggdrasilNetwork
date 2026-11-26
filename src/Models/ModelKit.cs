@@ -24,6 +24,13 @@ namespace YggdrasilNetwork.Models
         public static readonly Color GlowBlue = new Color(0.22f, 0.55f, 1.00f);
         public static readonly Color GlowPurple = new Color(0.34f, 0.08f, 0.60f);
 
+        /// <summary>Mensaje de diagnóstico: solo si "Registro detallado" está activo en la configuración.</summary>
+        public static void Diag(string msg)
+        {
+            if (YggdrasilPlugin.DebugLog != null && YggdrasilPlugin.DebugLog.Value)
+                YggdrasilPlugin.Log.LogInfo(msg);
+        }
+
         // ---------- Reemplazo del modelo ----------
 
         /// <summary>
@@ -104,7 +111,7 @@ namespace YggdrasilNetwork.Models
                         if (shader == "Custom/Piece" || (shader.Contains("Piece") && !m.name.ToLower().Contains("snow")))
                         {
                             _base = m;
-                            YggdrasilPlugin.Log.LogInfo($"Modelos: material base de {name} ({m.name}, shader {shader})");
+                            Diag($"Modelos: material base de {name} ({m.name}, shader {shader})");
                             return _base;
                         }
                     }
@@ -148,7 +155,9 @@ namespace YggdrasilNetwork.Models
             var m = new Material(shader) { name = name };
             color.a = 1f;
             m.SetColor("_Color", color);
-            m.renderQueue = 2450;
+            // Transparente (3000): se dibuja después del cielo. Con 2450 el cielo lo tapaba al mirar hacia arriba,
+            // porque este shader no escribe profundidad.
+            m.renderQueue = 3000;
             return m;
         }
 
@@ -174,7 +183,40 @@ namespace YggdrasilNetwork.Models
             }
             if (_loggedProps) return;
             _loggedProps = true;
-            YggdrasilPlugin.Log.LogInfo($"Modelos: propiedades puestas en 0 en {shader.name}: {string.Join(", ", changed)}");
+            Diag($"Modelos: propiedades puestas en 0 en {shader.name}: {string.Join(", ", changed)}");
+        }
+
+        /// <summary>
+        /// Cambia el color del metal (_MetalColor, verde en el cofre de metal negro) por <paramref name="color"/>,
+        /// valor absoluto y con HDR (mayor a 1 = más intenso), sin tocar madera ni emisión. Clona los materiales para no afectar al cofre del juego.
+        /// </summary>
+        public static void RecolorAccents(GameObject go, Color color)
+        {
+            var seen = new HashSet<string>();
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                var copy = new Material[mats.Length];
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    if (!mats[i]) continue;
+                    var m = new Material(mats[i]);
+                    var shader = m.shader;
+                    for (int p = 0; p < shader.GetPropertyCount(); p++)
+                    {
+                        if (shader.GetPropertyType(p) != UnityEngine.Rendering.ShaderPropertyType.Color) continue;
+                        string prop = shader.GetPropertyName(p);
+                        string low = prop.ToLowerInvariant();
+                        if (seen.Add(shader.name + prop))
+                            Diag($"Cofre: {m.name} {prop} = {m.GetColor(prop)}");
+                        // Solo el color del metal: tocar la emisión hacía brillar el cofre entero.
+                        if (low == "_metalcolor")
+                            m.SetColor(prop, color);
+                    }
+                    copy[i] = m;
+                }
+                r.sharedMaterials = copy;
+            }
         }
 
         // ---------- Texturas ----------

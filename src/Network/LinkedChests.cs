@@ -61,14 +61,23 @@ namespace YggdrasilNetwork.Network
             ZoneSystem.instance && ZoneSystem.instance.GetGlobalKey(QueenKey) ? QueenLimit : BaseLimit;
 
         /// <summary>Cofres vinculados en el mundo según el último dato del servidor (más los recién puestos).</summary>
-        internal static int Count => Known.Count(c => c.Linked && !c.Abyssal) + _placedSinceQuery;
+        // Cuántos hay en todo el mundo según el servidor (sin filtrar por guardas ni privacidad).
+        private static int _worldLinked, _worldAbyssal;
+
+        internal static int Count =>
+            Mathf.Max(_worldLinked, Known.Count(c => c.Linked && !c.Abyssal)) + _placedSinceQuery;
 
         internal static void NotePlaced() => _placedSinceQuery++;
 
         private static int _abyssalPlacedSinceQuery;
 
         /// <summary>Cofres abisales en el mundo (máximo 1).</summary>
-        internal static int AbyssalCount => Known.Count(c => c.Abyssal) + _abyssalPlacedSinceQuery;
+        internal static int AbyssalCount =>
+            Mathf.Max(_worldAbyssal, Known.Count(c => c.Abyssal)) + _abyssalPlacedSinceQuery
+            + (ZoneSystem.instance && ZoneSystem.instance.GetGlobalKey(AbyssalWorldKey) ? 1 : 0);
+
+        /// <summary>Marca global del mundo: hay un cofre abisal (llega al instante a todos los jugadores).</summary>
+        internal const string AbyssalWorldKey = "runevault_abyssal";
 
         internal static void NoteAbyssalPlaced() => _abyssalPlacedSinceQuery++;
 
@@ -172,14 +181,6 @@ namespace YggdrasilNetwork.Network
             return _storagePrefabs;
         }
 
-        private static IEnumerable<ZDO> AllZdos()
-        {
-            var dict = Traverse.Create(ZDOMan.instance).Field("m_objectsByID").GetValue() as IDictionary;
-            if (dict == null) yield break;
-            foreach (var value in dict.Values)
-                if (value is ZDO zdo) yield return zdo;
-        }
-
         private static void OnQuery(long sender, ZPackage pkg)
         {
             if (!ZNet.instance || !ZNet.instance.IsServer()) return;
@@ -191,7 +192,8 @@ namespace YggdrasilNetwork.Network
             int abyssalHash = AbyssalPrefab.GetStableHashCode();
             var storage = StoragePrefabs();
 
-            var all = AllZdos().ToList();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var all = NetworkIndex.Get(RelevantPrefabs(coreHash, pillarHash, linkedHash, abyssalHash));
             var core = all.FirstOrDefault(z => z.GetPrefab() == coreHash);
 
             // Zonas: el núcleo y los pilares conectados en cadena.
@@ -255,7 +257,27 @@ namespace YggdrasilNetwork.Network
                 reply.Write(size.y);
                 reply.Write(z.GetByteArray(ZDOVars.s_items, null) ?? new byte[0]);
             }
+            // Totales del mundo sin filtrar (guardas, privacidad): los límites cuentan los cofres de todos.
+            reply.Write(all.Count(z => z.GetPrefab() == linkedHash));
+            reply.Write(all.Count(z => z.GetPrefab() == abyssalHash));
+            // Medido antes de enviar: si quien pide es el propio anfitrión, la respuesta se procesa al instante
+            // dentro del envío y su tiempo no es del servidor.
+            long ms = watch.ElapsedMilliseconds;
+            if (YggdrasilPlugin.DebugLog.Value || ms > 100)
+                YggdrasilPlugin.Log.LogInfo($"[Debug] Servidor: pedido de la red resuelto en {ms} ms, " +
+                                            $"{chests.Count} cofres, respuesta de {reply.Size() / 1024f:0.0} KB.");
             ZRoutedRpc.instance.InvokeRoutedRPC(sender, QueryResultRpc, reply);
+        }
+
+        private static HashSet<int> _relevantPrefabs;
+
+        /// <summary>Prefabs que la red necesita conocer: núcleo, pilares, cofres (vinculados y normales) y guardas.</summary>
+        private static HashSet<int> RelevantPrefabs(int core, int pillar, int linked, int abyssal)
+        {
+            if (_relevantPrefabs != null) return _relevantPrefabs;
+            _relevantPrefabs = new HashSet<int>(StoragePrefabs()) { core, pillar, linked, abyssal };
+            foreach (var ward in WardPrefabs().Keys) _relevantPrefabs.Add(ward);
+            return _relevantPrefabs;
         }
 
         private sealed class WardInfo
@@ -311,8 +333,28 @@ namespace YggdrasilNetwork.Network
         /// El servidor puede tocar los datos del cofre si nadie lo tiene cargado, o si lo tiene cargado el
         /// propio servidor (anfitrión o mundo de un jugador). Si lo tiene cargado otro jugador, su juego manda.
         /// </summary>
-        private static bool ServerMayEdit(ZDO zdo) =>
-            zdo != null && (!zdo.HasOwner() || zdo.GetOwner() == ZDOMan.GetSessionID());
+        private static bool ServerMayEdit(ZDO zdo)
+        {
+            if (zdo == null) return false;
+            if (!zdo.HasOwner() || zdo.GetOwner() == ZDOMan.GetSessionID()) return true;
+
+            // El juego no siempre suelta la propiedad de un cofre cuando su dueño se aleja (por ejemplo al
+            // teletransportarse): queda a nombre de un jugador que ya no lo tiene cargado, el pedido reenviado
+            // a él se perdía y lo guardado volvía al inventario. Si el dueño no está conectado o está lejos,
+            // el servidor toma el cofre y lo edita él.
+            var peer = ZNet.instance ? ZNet.instance.GetPeer(zdo.GetOwner()) : null;
+            if (peer == null || Vector3.Distance(peer.GetRefPos(), zdo.GetPosition()) > OwnerLoadedRange)
+            {
+                if (YggdrasilPlugin.DebugLog.Value)
+                    YggdrasilPlugin.Log.LogInfo($"[Debug] Servidor: cofre {zdo.m_uid} a nombre de un jugador lejano o desconectado; lo toma el servidor.");
+                zdo.SetOwner(ZDOMan.GetSessionID());
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>Más allá de esta distancia, el dueño del cofre ya no lo tiene cargado.</summary>
+        private const float OwnerLoadedRange = 200f;
 
         /// <summary>Tamaño real del cofre (columnas, filas) según su prefab.</summary>
         private static Vector2i ChestSize(ZDO zdo)
@@ -434,8 +476,51 @@ namespace YggdrasilNetwork.Network
 
         // ---------- Respuesta (cliente) ----------
 
+        private sealed class CachedSnapshot
+        {
+            public byte[] Data;
+            public int Width, Height;
+            public Inventory Inventory;
+        }
+
+        private static readonly Dictionary<ZDOID, CachedSnapshot> Snapshots = new Dictionary<ZDOID, CachedSnapshot>();
+
+        /// <summary>
+        /// Inventario (de solo lectura) de un cofre lejano. Si sus datos no cambiaron desde la última respuesta,
+        /// se reutiliza el anterior: cargar un inventario avisa "cambió" a todo el juego, y otros mods
+        /// (Path of Valheiman) refrescan entonces la ventana de crafteo, lo que costaba ~100 ms por respuesta.
+        /// </summary>
+        private static Inventory Snapshot(ZDOID id, int w, int h, byte[] data)
+        {
+            data = data ?? new byte[0];
+            if (Snapshots.TryGetValue(id, out var cached) && cached.Width == w && cached.Height == h
+                && SameBytes(cached.Data, data))
+                return cached.Inventory;
+
+            var inv = new Inventory("YggdrasilRemote", null, w, h);
+            try
+            {
+                if (data.Length > 0) inv.Load(new ZPackage(data));
+            }
+            catch (System.Exception e)
+            {
+                YggdrasilPlugin.Log.LogWarning($"Cofre {id}: no se pudo leer su inventario: {e.Message}");
+            }
+            Snapshots[id] = new CachedSnapshot { Data = data, Width = w, Height = h, Inventory = inv };
+            return inv;
+        }
+
+        private static bool SameBytes(byte[] a, byte[] b)
+        {
+            if (a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++)
+                if (a[i] != b[i]) return false;
+            return true;
+        }
+
         private static void OnQueryResult(ZPackage pkg)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             HasCore = pkg.ReadBool();
             CorePosition = pkg.ReadVector3();
             Pillars.Clear();
@@ -459,24 +544,20 @@ namespace YggdrasilNetwork.Network
                 // Con el tamaño real: así se sabe de antemano si un ítem nuevo cabe (antes se suponía
                 // espacio de sobra, el primer cofre lleno lo rechazaba y no se probaba el siguiente).
                 int w = pkg.ReadInt(), h = pkg.ReadInt();
-                chest.Inventory = new Inventory("YggdrasilRemote", null, Mathf.Max(1, w), Mathf.Max(1, h));
                 var data = pkg.ReadByteArray();
-                try
-                {
-                    if (data != null && data.Length > 0) chest.Inventory.Load(new ZPackage(data));
-                }
-                catch (System.Exception e)
-                {
-                    YggdrasilPlugin.Log.LogWarning($"Cofre {chest.Id}: no se pudo leer su inventario: {e.Message}");
-                }
+                chest.Inventory = Snapshot(chest.Id, Mathf.Max(1, w), Mathf.Max(1, h), data);
                 Known.Add(chest);
             }
+            foreach (var gone in Snapshots.Keys.Where(k => !Known.Any(c => c.Id == k)).ToList())
+                Snapshots.Remove(gone);
+            _worldLinked = pkg.ReadInt();
+            _worldAbyssal = pkg.ReadInt();
             ReceivedAt = Time.time;
 
+            UI.TerminalWindow.NotifyChanged();
             if (YggdrasilPlugin.DebugLog.Value)
                 YggdrasilPlugin.Log.LogInfo($"[Debug] Red según el servidor: núcleo {HasCore}, {Pillars.Count} pilares, " +
-                                            $"{Known.Count} cofres ({Known.Count(c => c.Linked)} vinculados, {Known.Count(c => !IsLoadedHere(c.Id))} lejanos)");
-            UI.TerminalWindow.NotifyChanged();
+                                            $"{Known.Count} cofres ({Known.Count(c => c.Linked)} vinculados); procesada en {watch.ElapsedMilliseconds} ms.");
         }
     }
 
@@ -519,7 +600,22 @@ namespace YggdrasilNetwork.Network
         private static void Postfix(Piece __0, bool __result)
         {
             if (__result && __0 && __0.GetComponent<LinkedChest>()) LinkedChests.NotePlaced();
-            if (__result && __0 && __0.GetComponent<AbyssalChest>()) LinkedChests.NoteAbyssalPlaced();
+            if (__result && __0 && __0.GetComponent<AbyssalChest>())
+            {
+                LinkedChests.NoteAbyssalPlaced();
+                if (ZoneSystem.instance) ZoneSystem.instance.SetGlobalKey(LinkedChests.AbyssalWorldKey);
+            }
+        }
+    }
+
+    /// <summary>Al destruir o desarmar el cofre abisal, se libera el cupo del mundo.</summary>
+    [HarmonyPatch(typeof(WearNTear), "Destroy")]
+    internal static class AbyssalDestroyedPatch
+    {
+        private static void Prefix(WearNTear __instance)
+        {
+            if (__instance.GetComponent<AbyssalChest>() && ZoneSystem.instance)
+                ZoneSystem.instance.RemoveGlobalKey(LinkedChests.AbyssalWorldKey);
         }
     }
 
@@ -532,8 +628,12 @@ namespace YggdrasilNetwork.Network
         {
             if (Time.time < _next) return;
             _next = Time.time + 5f;
+            // Solo mientras se tiene elegido un cofre vinculado o abisal en el martillo: es lo único que necesita
+            // el conteo al día (antes se pedía cada 5 s con cualquier pieza).
             var player = Player.m_localPlayer;
-            if (player && player.InPlaceMode()) LinkedChests.Query();
+            if (!player || !player.InPlaceMode()) return;
+            var piece = player.GetSelectedPiece();
+            if (piece && (piece.GetComponent<LinkedChest>() || piece.GetComponent<AbyssalChest>())) LinkedChests.Query();
         }
     }
 }

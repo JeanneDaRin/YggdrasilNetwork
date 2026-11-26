@@ -5,7 +5,7 @@ using UnityEngine;
 namespace YggdrasilNetwork
 {
     /// <summary>
-    /// Apariencia propia sin modelos nuevos: íconos PNG que viajan junto al DLL (carpeta Assets),
+    /// Íconos (incrustados en el DLL, con respaldo en la carpeta Assets)
     /// y piezas del juego teñidas, con brillo y una luz de color.
     /// Las fuentes de los íconos (SVG) están en la carpeta Art del proyecto.
     /// </summary>
@@ -17,18 +17,49 @@ namespace YggdrasilNetwork
         private static string AssetsDir =>
             Path.Combine(Path.GetDirectoryName(typeof(YggdrasilPlugin).Assembly.Location) ?? "", "Assets");
 
-        /// <summary>Carga Assets/icon_{name}.png como sprite, o null si falta (la pieza queda con el ícono original).</summary>
+        /// <summary>
+        /// Ícono icon_{name}.png. Primero desde dentro del DLL (recurso incrustado: funciona aunque el gestor de
+        /// mods no copie la carpeta Assets), y si no, desde Assets/ junto al DLL. Null si no está en ninguno.
+        /// </summary>
         public static Sprite Icon(string name)
         {
-            string path = Path.Combine(AssetsDir, $"icon_{name}.png");
-            if (!File.Exists(path))
+            var tex = EmbeddedTexture($"icon_{name}.png");
+            if (!tex)
             {
-                YggdrasilPlugin.Log.LogWarning($"Falta el ícono {path}");
+                string path = Path.Combine(AssetsDir, $"icon_{name}.png");
+                if (File.Exists(path)) tex = AssetUtils.LoadTexture(path, false);
+            }
+            if (!tex)
+            {
+                YggdrasilPlugin.Log.LogWarning($"Falta el ícono icon_{name}.png");
                 return null;
             }
-            var tex = AssetUtils.LoadTexture(path, false);
-            if (!tex) return null;
             return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+        }
+
+        // ImageConversion.LoadImage por reflexión: referenciar su módulo al compilar choca con la versión
+        // de netstandard del proyecto, pero en el juego está siempre disponible.
+        private static readonly System.Reflection.MethodInfo LoadImage =
+            System.Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule")
+                ?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]) });
+
+        private static Texture2D EmbeddedTexture(string file)
+        {
+            var asm = typeof(YggdrasilPlugin).Assembly;
+            using (var stream = asm.GetManifestResourceStream("YggdrasilNetwork.Assets." + file))
+            {
+                if (stream == null) return null;
+                var bytes = new byte[stream.Length];
+                int read = 0;
+                while (read < bytes.Length)
+                {
+                    int n = stream.Read(bytes, read, bytes.Length - read);
+                    if (n <= 0) break;
+                    read += n;
+                }
+                var tex = new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = file };
+                return LoadImage != null && (bool)LoadImage.Invoke(null, new object[] { tex, bytes }) ? tex : null;
+            }
         }
 
         /// <summary>

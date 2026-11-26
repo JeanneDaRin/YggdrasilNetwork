@@ -211,6 +211,7 @@ namespace YggdrasilNetwork.Network
             {
                 if (item.m_gridPos.y == 0) continue;            // barra rápida (1-8)
                 if (player.IsItemEquiped(item)) continue;
+                if (UI.TerminalWindow.IsProtected(item)) continue;   // la runa que abrió la red a distancia
                 if (!names.Contains(item.m_shared.m_name)) continue;
                 total += RequestStore(player, item, item.m_stack);
             }

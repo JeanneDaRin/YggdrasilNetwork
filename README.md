@@ -35,6 +35,9 @@ anywhere in the world.
 - **Access Rune / Void Rune** — open the network away from home (2500 m / unlimited).
 - **Abyssal Chest** — a huge 8×8 chest that is always part of the network.
 - **Range circles** while building: blue for the core, purple for pillars.
+- **Custom look** built in code, using the game's own materials: a pedestal with a floating crystal for the core,
+  a rune tablet for the terminal, a spiked obelisk for the pillars, network traces and a hovering crystal on
+  linked chests, and an imposing Abyssal Chest with horns and a rotating rune ring.
 - **Server-authoritative**: chests are only modified by whoever owns them, so several players can use the
   network at the same time without duplicating or losing items.
 - English and Spanish.
@@ -84,7 +87,8 @@ Items go to chests that already hold the same item first; new items go to the fi
 | Deep North | Void Crystal → Void Rune (unlimited) | 4 Deep North gemstones → crystal + 20 Bloodgold · Galdr table |
 | Deep North | Abyssal Chest (max 1) | 30 Frostwood + Hexen trophy |
 
-Trophies are consumed. Want the boss power too? Fight it again.
+Trophies spent on core upgrades and runes are consumed — want the boss power too? Fight it again. Pieces built
+with a trophy (pillar, linked and abyssal chests) give it back when deconstructed.
 
 ## Multiplayer
 
@@ -93,13 +97,18 @@ Trophies are consumed. Want the boss power too? Fight it again.
   player's game. Requests are routed automatically.
 - Private chests and other players' **wards** are respected, exactly as when opening a chest by hand.
 - Gameplay settings (radii, upgrade costs, pillar range) are **synced from the server**.
+- If a chest is still assigned to a player who walked or teleported away, the server takes it over, so far
+  requests never get lost.
+- Chest limits (linked chests, one Abyssal Chest, one core) count everyone's chests, not only the ones you can see.
+- The server keeps its own list of network pieces instead of scanning the whole world on every request, and
+  far chests are only reloaded when their contents change.
 
 ## Compatibility
 
 | Mod | Status |
 |---|---|
 | MultiUserChest | Supported — chests open by other players can still be used. |
-| Quick Stack - Store - Sort - Trash - Restock | Integrated — quick stacking next to a terminal also fills network chests. Favorites are respected. |
+| Quick Stack - Store - Sort - Trash - Restock | Integrated — quick stacking next to a terminal also fills network chests, including far linked chests. Favorites, hotbar and equipped items are respected. |
 | Crafting-from-chests mods (Path of Valheiman, AzuCraftyBoxes, Craft From Containers…) | Compatible. Yggdrasil Network does **not** craft from chests, so nothing is consumed twice. |
 | Path of Valheiman | Tested together. Its rune chest is never added to the network. |
 
@@ -120,9 +129,12 @@ World-generated chests (dungeons, ruins, villages) are never part of the network
 
 ## Known limitations
 
-- Pieces use vanilla models with custom colors and lights; dedicated models are planned.
+- Linked and Abyssal Chests keep the vanilla black metal chest model (so the lid still opens) with extra
+  decoration on top.
+- With **Path of Valheiman**, the runes and the Void Crystal appear under *Other* at the Galdr table.
 - A far chest loaded by another player is handled by that player's game: if they disconnect at that exact
   moment, the request is lost (no items are lost — nothing moves).
+- While the network is open with a rune, runes can't be stored (so you never lock your way home in a chest).
 
 ## Building from source
 
@@ -173,6 +185,9 @@ cualquier parte del mundo. El juego incluye todos los textos en español.
 - **Cofres vinculados** y **Cofre abisal** (8×8): siempre forman parte de la red, estén donde estén.
 - **Runa de acceso** (2.500 m) y **Runa del Vacío** (sin límite): abren la red lejos de casa.
 - Círculos de alcance al construir (azul el núcleo, morado los pilares).
+- **Aspecto propio**, hecho por código con los materiales del juego: pedestal con cristal flotante (núcleo),
+  losa rúnica (terminal), obelisco con púas (pilar), trazas de red y cristal flotante en los cofres vinculados,
+  y un cofre abisal imponente con cuernos y un anillo de runas que gira.
 - Multijugador seguro: cada cofre lo modifica solo su dueño, así que varios jugadores pueden usar la red a la
   vez sin duplicar ni perder ítems. Respeta guardas y cofres privados.
 
@@ -199,6 +214,7 @@ cualquier parte del mundo. El juego incluye todos los textos en español.
 | Ashlands | Runa de acceso | 10 flametal + trofeo de Fader (banco de magia) |
 | Deep North | Cristal y Runa del Vacío · Cofre abisal | 4 gemas + 20 oro de sangre · 30 madera escarchada + trofeo de la Hexen |
 
-Los trofeos se gastan: si quieres el poder del jefe, toca enfrentarlo otra vez.
+Los trofeos de las mejoras del núcleo y de las runas se gastan: si quieres el poder del jefe, toca enfrentarlo
+otra vez. Las piezas que llevan trofeo (pilar, cofres vinculado y abisal) lo devuelven al desarmarlas.
 
 Para instalación, compatibilidad, configuración y reportes de errores, ver las secciones en inglés más arriba.

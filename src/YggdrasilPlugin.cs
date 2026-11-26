@@ -75,7 +75,7 @@ namespace YggdrasilNetwork
         {
             // En Start todos los plugins ya están cargados por BepInEx.
             Compat.Detect();
-            if (Compat.QuickStackStore) Network.QuickStackCompat.TryPatch(_harmony);
+            if (Compat.QuickStackStore) Network.QuickStackCompat.TryPatch(_harmony, this);
         }
 
         private void OnDestroy()

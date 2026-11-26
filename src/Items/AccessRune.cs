@@ -40,7 +40,9 @@ namespace YggdrasilNetwork.Items
             var shared = rune.ItemDrop.m_itemData.m_shared;
             shared.m_maxStackSize = 1;
             shared.m_teleportable = true;
-            Visuals.Tint(rune.ItemDrop.gameObject, new UnityEngine.Color(0.75f, 0.90f, 1.20f), Visuals.RuneBlue * 0.5f);
+            // "Otros" en vez de "Materiales" (también en la ventana de crafteo de Path of Valheiman).
+            shared.m_itemType = ItemDrop.ItemData.ItemType.Misc;
+            Models.ItemModels.AccessRune(rune.ItemDrop.gameObject);
             ItemManager.Instance.AddItem(rune);
 
             // La ventana de crafteo del juego muestra como máximo 4 materiales, y la runa necesita 5
@@ -60,7 +62,8 @@ namespace YggdrasilNetwork.Items
                 },
             });
             crystal.ItemDrop.m_itemData.m_shared.m_maxStackSize = 10;
-            Visuals.Tint(crystal.ItemDrop.gameObject, new UnityEngine.Color(0.85f, 0.65f, 1.20f), Visuals.RunePurple * 0.6f);
+            crystal.ItemDrop.m_itemData.m_shared.m_itemType = ItemDrop.ItemData.ItemType.Misc;
+            Models.ItemModels.VoidCrystal(crystal.ItemDrop.gameObject);
             ItemManager.Instance.AddItem(crystal);
 
             // Runa del Vacío (Deep North): igual que la de acceso, pero sin límite de distancia.
@@ -79,7 +82,8 @@ namespace YggdrasilNetwork.Items
             var voidShared = voidRune.ItemDrop.m_itemData.m_shared;
             voidShared.m_maxStackSize = 1;
             voidShared.m_teleportable = true;
-            Visuals.Tint(voidRune.ItemDrop.gameObject, new UnityEngine.Color(0.45f, 0.35f, 0.65f), Visuals.RunePurple * 0.6f);
+            voidShared.m_itemType = ItemDrop.ItemData.ItemType.Misc;
+            Models.ItemModels.VoidRune(voidRune.ItemDrop.gameObject);
             ItemManager.Instance.AddItem(voidRune);
         }
 

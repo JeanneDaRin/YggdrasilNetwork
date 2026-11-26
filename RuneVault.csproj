@@ -28,6 +28,11 @@
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- Íconos dentro del DLL: así se ven aunque el gestor de mods no copie la carpeta Assets. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\*.png" LogicalName="YggdrasilNetwork.Assets.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <Reference Include="BepInEx"><HintPath>$(BepInExDir)\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(BepInExDir)\core\0Harmony.dll</HintPath><Private>false</Private></Reference>

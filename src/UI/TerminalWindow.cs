@@ -178,7 +178,7 @@ namespace YggdrasilNetwork.UI
 
         internal static void StoreDraggedFromCursor()
         {
-            if (IsOpen) _instance.TryStoreDragged();
+            if (IsOpen && Time.frameCount - _instance._lastDropFrame >= 30) _instance.TryStoreDragged();
         }
 
         internal static void NotifyChanged()
@@ -186,6 +186,17 @@ namespace YggdrasilNetwork.UI
             if (!_instance) return;
             _instance._nextRefresh = 0f;
             _instance.TryFinishRemoteOpen();
+        }
+
+        /// <summary>
+        /// Con la red abierta a distancia, las runas de acceso y del vacío no se guardan: si se guardara la que
+        /// abrió la red, al cerrar quedaría lejos y habría que volver a buscarla en los cofres.
+        /// </summary>
+        internal static bool IsProtected(ItemDrop.ItemData item)
+        {
+            if (!IsOpen || !_instance._remote || item == null || !item.m_dropPrefab) return false;
+            string name = item.m_dropPrefab.name;
+            return name == Items.AccessRune.Prefab || name == Items.AccessRune.VoidPrefab;
         }
 
         internal static void StoreFromInventory(ItemDrop.ItemData item, int amount = -1)
@@ -221,7 +232,26 @@ namespace YggdrasilNetwork.UI
                 _blockUntilFrame = Time.frameCount + 2;
             SetInputBlocked(Time.frameCount <= _blockUntilFrame);
 
+            // Soltar un objeto arrastrado sobre el panel: se detecta aquí al apretar el clic, sin depender del
+            // evento de clic de la interfaz (con la red abierta por una runa, ese evento no llegaba).
+            if (Input.GetMouseButtonDown(0) && PointerOverPanel() && TryStoreDragged())
+            {
+                _lastDropFrame = Time.frameCount;
+                if (YggdrasilPlugin.DebugLog.Value) YggdrasilPlugin.Log.LogInfo("[Debug] Objeto arrastrado soltado sobre el panel.");
+            }
+
             if (Time.time >= _nextRefresh) Refresh(player);
+        }
+
+        private int _lastDropFrame = -100;
+
+        private bool PointerOverPanel()
+        {
+            var rt = _panel ? (RectTransform)_panel.transform : null;
+            if (!rt) return false;
+            var canvas = rt.GetComponentInParent<Canvas>();
+            var cam = canvas && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            return RectTransformUtility.RectangleContainsScreenPoint(rt, Input.mousePosition, cam);
         }
 
         private void Refresh(Player player)
@@ -501,6 +531,7 @@ namespace YggdrasilNetwork.UI
         /// <summary>Clic sobre una celda.</summary>
         internal void OnCellClick(NetworkItem item, PointerEventData.InputButton button)
         {
+            if (Time.frameCount - _lastDropFrame < 30) return;   // este clic ya guardó lo que se arrastraba
             if (TryStoreDragged()) return;          // venía arrastrando algo: se guarda
             if (_dialog.activeSelf) return;
 
@@ -604,7 +635,15 @@ namespace YggdrasilNetwork.UI
                 player.Message(MessageHud.MessageType.Center, T("rv_store_equipped"));
                 return;
             }
-            if (_network.RequestStore(player, item, Mathf.Min(amount, item.m_stack)) == 0)
+            if (IsProtected(item))
+            {
+                player.Message(MessageHud.MessageType.Center, T("rv_store_rune_in_use"));
+                return;
+            }
+            int stored = _network.RequestStore(player, item, Mathf.Min(amount, item.m_stack));
+            if (YggdrasilPlugin.DebugLog.Value)
+                YggdrasilPlugin.Log.LogInfo($"[Debug] Guardar {item.m_shared.m_name} x{amount} (a distancia: {_remote}) → {stored} enviados.");
+            if (stored == 0)
                 player.Message(MessageHud.MessageType.Center, T("rv_store_failed", Localize(item.m_shared.m_name)));
         }
 
